@@ -1,36 +1,20 @@
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::prelude::*;
 use block::{components::{BlockPosition, BlockTextures, Block, BlockType, BlockFace}, resources::BlockTextureAtlas};
 use noise::{NoiseFn, Perlin};
+use player::*;
 use rand::prelude::*;
-use bevy::input::mouse::MouseMotion;
 
 pub mod block;
-
-#[derive(Resource)]
-struct MouseLook {
-    sensitivity: f32,
-    location: Vec2
-}
-
-impl Default for MouseLook {
-    fn default() -> Self {
-        Self {
-            sensitivity: 0.0005,
-            location: Vec2::new(0.0, 0.0)
-        }
-    }
-}
+pub mod player;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugins(PlayerPlugin)
         .init_resource::<BlockTextureAtlas>()
-        .init_resource::<MouseLook>()
         .add_systems(Startup, spawn_lighting)
-        .add_systems(Startup, spawn_camera)
         .add_systems(Startup, initialize_textures)
         .add_systems(Startup, load_initial_blocks.after(initialize_textures))
-        .add_systems(Update, mouse_look)
         .run()
 }
 
@@ -39,31 +23,6 @@ fn initialize_textures(
     mut block_texture_atlas: ResMut<BlockTextureAtlas>
 ) {
     block_texture_atlas.load_all_textures(asset_server);
-}
-
-fn spawn_camera(
-    mut commands: Commands
-) {
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..default()
-    });
-}
-
-fn mouse_look(
-    mut motion_evr: EventReader<MouseMotion>,
-    mut camera_query: Query<&mut Transform, With<Camera3d>>,
-    mouse_look: ResMut<MouseLook>,
-) {
-    for ev in motion_evr.iter() {
-        let mut camera_transform = camera_query.single_mut();
-        camera_transform.rotate_local(Quat::from_euler(
-            EulerRot::XYZ,
-            -ev.delta.y * mouse_look.sensitivity,
-            -ev.delta.x * mouse_look.sensitivity,
-            0.0,
-        ));
-    }
 }
 
 fn load_initial_blocks(
@@ -75,7 +34,7 @@ fn load_initial_blocks(
     let perlin = Perlin::new(random());
     let block_size = 1.0;
     let noise_scale = 2.0;
-    let map_size = 200;
+    let map_size = 20;
     let map_height = 20;
     let mut terrain_height = vec![vec![0; map_size]; map_size];
 
